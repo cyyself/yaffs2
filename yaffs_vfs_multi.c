@@ -91,6 +91,33 @@
 
 #if (YAFFS_NEW_FOLLOW_LINK == 1)
 #include <linux/namei.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
+#include <linux/dcache.h>
+#include <linux/security.h>
+#define EMBEDDED_LEVELS 2
+struct nameidata {
+	struct path	path;
+	struct qstr	last;
+	struct path	root;
+	struct inode	*inode; /* path.dentry.d_inode */
+	unsigned int	flags;
+	unsigned	seq, m_seq;
+	int		last_type;
+	unsigned	depth;
+	int		total_link_count;
+	struct saved {
+		struct path link;
+		void *cookie;
+		const char *name;
+		struct inode *inode;
+		unsigned seq;
+	} *stack, internal[EMBEDDED_LEVELS];
+	struct filename	*name;
+	struct nameidata *saved;
+	unsigned	root_seq;
+	int		dfd;
+};
+#endif
 #endif
 
 #ifdef YAFFS_COMPILE_EXPORTFS
@@ -249,13 +276,18 @@ MODULE_PARM(yaffs_gc_control, "i");
 #endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
+#define Y_GET_DENTRY(f) ((f)->f_path.dentry)
+#else
+#define Y_GET_DENTRY(f) ((f)->f_dentry)
+#endif
+
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
 #define PAGE_CACHE_SIZE PAGE_SIZE
 #define PAGE_CACHE_SHIFT PAGE_SHIFT
-#define Y_GET_DENTRY(f) ((f)->f_path.dentry)
 #define YAFFS_NEW_XATTR 1
 #define YAFFS_NEW_GET_LINK 1
 #else
-#define Y_GET_DENTRY(f) ((f)->f_dentry)
 #define YAFFS_NEW_XATTR 0
 #define YAFFS_NEW_GET_LINK 0
 #endif
@@ -1113,7 +1145,7 @@ static void *yaffs_follow_link(struct dentry *dentry, struct nameidata *nd)
 #else
 static int yaffs_follow_link(struct dentry *dentry, struct nameidata *nd)
 {
-	int ret
+	int ret;
 #endif
 	unsigned char *alias;
 	int ret_int = 0;
@@ -1129,7 +1161,11 @@ static int yaffs_follow_link(struct dentry *dentry, struct nameidata *nd)
 		goto out;
 	}
 #if (YAFFS_NEW_FOLLOW_LINK == 1)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
+	nd->stack->cookie = alias;
+#else
 	nd_set_link(nd, alias);
+#endif
 	ret = alias;
 out:
 	if (ret_int)
