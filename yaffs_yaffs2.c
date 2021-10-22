@@ -35,6 +35,13 @@
  * Oldest Dirty Sequence Number handling.
  */
 
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+extern size_t yaffs_memory_count;
+//#define kmalloc(x, flags) ({void *ret = kmalloc(x,flags);if (ret) yaffs_memory_count+=x;ret;})
+#define vmalloc(x) ({yaffs_memory_count+=x;vmalloc(x);})
+//#define kfree(x) ({yaffs_memory_count-=ksize(x);kfree(x);})
+#endif
+
 /* yaffs_calc_oldest_dirty_seq()
  * yaffs2_find_oldest_dirty_seq()
  * Calculate the oldest dirty sequence number if we don't know it.
@@ -1555,6 +1562,10 @@ int yaffs2_scan_backwards(struct yaffs_dev *dev)
 	if (!block_index) {
 		block_index =
 		    vmalloc(n_blocks * sizeof(struct yaffs_block_index));
+#if 0
+		// no need to add twice, this if only happens when kmalloc error
+		yaffs_memory_count -= n_blocks * sizeof(struct yaffs_block_index);
+#endif
 		alt_block_index = 1;
 	}
 
@@ -1690,9 +1701,13 @@ int yaffs2_scan_backwards(struct yaffs_dev *dev)
 
 	yaffs_skip_rest_of_block(dev);
 
-	if (alt_block_index)
+	if (alt_block_index) {
 		vfree(block_index);
-	else
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+		yaffs_memory_count -= n_blocks * sizeof(struct yaffs_block_index);
+#endif
+	}
+	else 
 		kfree(block_index);
 
 	/* Ok, we've done all the scanning.

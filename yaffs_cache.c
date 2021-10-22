@@ -25,6 +25,13 @@
  *   need a very intelligent search.
  */
 
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+extern size_t yaffs_memory_count;
+//#define kmalloc(x, flags) ({void *ret = kmalloc(x,flags);if (ret) yaffs_memory_count+=x;ret;})
+#define vmalloc(x) ({yaffs_memory_count+=x;vmalloc(x);})
+//#define kfree(x) ({yaffs_memory_count-=ksize(x);kfree(x);})
+#endif
+
 int yaffs_obj_cache_dirty(struct yaffs_obj *obj)
 {
 	struct yaffs_dev *dev = obj->my_dev;

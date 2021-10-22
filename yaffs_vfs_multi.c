@@ -209,6 +209,36 @@ static uint32_t YCALCBLOCKS(uint64_t partition_size, uint32_t block_size)
 #include "yaffs_packedtags2.h"
 #include "yaffs_getblockinfo.h"
 
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+size_t yaffs_memory_count = 0;
+
+static ssize_t yaffs_memory_count_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf) {
+	return sprintf(buf, "%ld B\n", yaffs_memory_count);
+}
+
+static ssize_t yaffs_memory_count_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t cnt) {
+	return 0;
+}
+
+static struct kobj_attribute yaffs_memory_count_attr = __ATTR(yaffs_memory_count, 0444, yaffs_memory_count_show, yaffs_memory_count_store);
+
+static struct attribute *yaffs_memory_statistic_attrs[] = {
+    &yaffs_memory_count_attr.attr,
+    NULL,
+};
+
+static struct attribute_group yaffs_memory_statistic_attr_group = {
+    .attrs = yaffs_memory_statistic_attrs,
+};
+
+struct kobject *yaffs_memory_statistic_kobj;
+
+//#define kmalloc(x, flags) ({void *ret = kmalloc(x,flags);if (ret) yaffs_memory_count+=x;ret;})
+#define vmalloc(x) ({yaffs_memory_count+=x;vmalloc(x);})
+//#define kfree(x) ({yaffs_memory_count-=ksize(x);kfree(x);})
+
+#endif
+
 unsigned int yaffs_trace_mask = YAFFS_TRACE_BAD_BLOCKS | YAFFS_TRACE_ALWAYS | 0;
 unsigned int yaffs_wr_attempts = YAFFS_WR_ATTEMPTS;
 unsigned int yaffs_auto_checkpoint = 1;
@@ -3779,12 +3809,26 @@ static int __init init_yaffs_fs(void)
 
 	yaffs_trace(YAFFS_TRACE_ALWAYS,
 		"yaffs Installing.");
-
+	
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+	yaffs_memory_statistic_kobj = kobject_create_and_add("yaffs_memory_statistic", kernel_kobj);
+	if (!(yaffs_memory_statistic_kobj)) error = -ENOMEM;
+	error = sysfs_create_group(yaffs_memory_statistic_kobj, &yaffs_memory_statistic_attr_group);
+	if (error) {
+		kobject_put(yaffs_memory_statistic_kobj);
+		return error;
+	}
+#endif
 	mutex_init(&yaffs_context_lock);
 
 	error = yaffs_procfs_init();
-	if (error)
+	if (error) {
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+		sysfs_remove_group(yaffs_memory_statistic_kobj, &yaffs_memory_statistic_attr_group);
+		kobject_put(yaffs_memory_statistic_kobj);
+#endif
 		return error;
+	}
 
 	/* Now add the file system entries */
 
@@ -3799,6 +3843,10 @@ static int __init init_yaffs_fs(void)
 
 	/* Any errors? uninstall  */
 	if (error) {
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+		sysfs_remove_group(yaffs_memory_statistic_kobj, &yaffs_memory_statistic_attr_group);
+		kobject_put(yaffs_memory_statistic_kobj);
+#endif
 		fsinst = fs_to_install;
 
 		while (fsinst->fst) {
@@ -3820,6 +3868,9 @@ static void __exit exit_yaffs_fs(void)
 
 	yaffs_trace(YAFFS_TRACE_ALWAYS,
 		"yaffs removing.");
+
+	sysfs_remove_group(yaffs_memory_statistic_kobj, &yaffs_memory_statistic_attr_group);
+	kobject_put(yaffs_memory_statistic_kobj);
 
 	remove_proc_entry("yaffs", YPROC_ROOT);
 
