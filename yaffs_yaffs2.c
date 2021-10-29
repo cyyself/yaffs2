@@ -1556,18 +1556,8 @@ int yaffs2_scan_backwards(struct yaffs_dev *dev)
 
 	dev->seq_number = YAFFS_LOWEST_SEQUENCE_NUMBER;
 
-	block_index =
-		kmalloc(n_blocks * sizeof(struct yaffs_block_index), GFP_NOFS);
-
-	if (!block_index) {
-		block_index =
-		    vmalloc(n_blocks * sizeof(struct yaffs_block_index));
-#if 0
-		// no need to add twice, this if only happens when kmalloc error
-		yaffs_memory_count -= n_blocks * sizeof(struct yaffs_block_index);
-#endif
-		alt_block_index = 1;
-	}
+	block_index = vmalloc(n_blocks * sizeof(struct yaffs_block_index));
+	alt_block_index = 1;
 
 	if (!block_index) {
 		yaffs_trace(YAFFS_TRACE_SCAN,

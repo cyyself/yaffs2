@@ -2113,38 +2113,16 @@ static int yaffs_init_blocks(struct yaffs_dev *dev)
 	dev->alloc_block = -1;	/* force it to get a new one */
 
 	/* If the first allocation strategy fails, thry the alternate one */
-	dev->block_info =
-		kmalloc(n_blocks * sizeof(struct yaffs_block_info), GFP_NOFS);
-	if (!dev->block_info) {
-		dev->block_info =
-		    vmalloc(n_blocks * sizeof(struct yaffs_block_info));
-#if 0
-		// no need to add twice, this if only happens when kmalloc error
-		yaffs_memory_count -= n_blocks * sizeof(struct yaffs_block_info);
-#endif
-		dev->block_info_alt = 1;
-	} else {
-		dev->block_info_alt = 0;
-	}
+	dev->block_info = vmalloc(n_blocks * sizeof(struct yaffs_block_info));
+	dev->block_info_alt = 1;
 
 	if (!dev->block_info)
 		goto alloc_error;
 
 	/* Set up dynamic blockinfo stuff. Round up bytes. */
 	dev->chunk_bit_stride = (dev->param.chunks_per_block + 7) / 8;
-	dev->chunk_bits =
-		kmalloc(dev->chunk_bit_stride * n_blocks, GFP_NOFS);
-	if (!dev->chunk_bits) {
-		dev->chunk_bits =
-		    vmalloc(dev->chunk_bit_stride * n_blocks);
-#if 0
-		// no need to add twice, this if only happens when kmalloc error
-		yaffs_memory_count -= dev->chunk_bit_stride * n_blocks;
-#endif
-		dev->chunk_bits_alt = 1;
-	} else {
-		dev->chunk_bits_alt = 0;
-	}
+	dev->chunk_bits = vmalloc(dev->chunk_bit_stride * n_blocks);
+	dev->chunk_bits_alt = 1;
 	if (!dev->chunk_bits)
 		goto alloc_error;
 
