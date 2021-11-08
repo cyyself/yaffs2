@@ -90,7 +90,7 @@ extern int simulate_power_failure;
 static int remaining_ops;
 static int nops_so_far;
 
-int ops_multiplier;
+extern int ops_multiplier;
 
 static void yflash2_MaybePowerFail(unsigned int nand_chunk, int failPoint)
 {
