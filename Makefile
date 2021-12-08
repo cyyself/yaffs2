@@ -43,7 +43,8 @@ ifneq ($(KERNELRELEASE),)
 	yaffs2-objs += yaffs_summary.o
 
 	yaffs2multi-objs := yaffs_cache.o
-	yaffs2multi-objs += yaffs_mtdif_multi.o
+	# yaffs2multi-objs += yaffs_mtdif_multi.o
+	yaffs2multi-objs += yaffs_ocif_multi.o
 	yaffs2multi-objs += yaffs_packedtags1.o
 	yaffs2multi-objs += yaffs_ecc.o yaffs_vfs_multi.o yaffs_guts.o
 	yaffs2multi-objs += yaffs_packedtags2.o

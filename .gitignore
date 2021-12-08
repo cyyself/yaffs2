@@ -636,3 +636,4 @@ direct/test-framework/stress_tests/handle_tests/yaffs_tagscompat.c
 direct/test-framework/stress_tests/handle_tests/yaffs_nandsim_file.h
 direct/test-framework/stress_tests/handle_tests/yaffs_osglue.c
 direct/test-framework/stress_tests/handle_tests/nandstore_file.c
+.vscode/settings.json

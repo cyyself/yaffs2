@@ -173,7 +173,7 @@ config YAFFS_XATTR
 config YAFFS_MEMORY_STATISTIC
 	bool "Enable yaffs2 memory statistic"
 	depends on YAFFS_FS
-	default n
+	default y
 	help
 	 If this is set then yaffs2 will count kernel memory used by yaffs module
-	 If unsure, say n.
+	 If unsure, say y.
