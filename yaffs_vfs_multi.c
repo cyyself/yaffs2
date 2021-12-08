@@ -2418,8 +2418,6 @@ struct mutex yaffs_context_lock;
 static void yaffs_put_super(struct super_block *sb)
 {
 	struct yaffs_dev *dev = yaffs_super_to_dev(sb);
-	// struct mtd_info *mtd = yaffs_dev_to_mtd(dev); /* (dev)->driver_context to mtd_info */
-
 	yaffs_trace(YAFFS_TRACE_OS | YAFFS_TRACE_ALWAYS,
 				"yaffs_put_super");
 

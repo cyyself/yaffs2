@@ -63,7 +63,7 @@ static int yaffs_mtd_write(struct yaffs_dev *dev, int nand_chunk,
 {
 	struct mtd_info *mtd = yaffs_dev_to_mtd(dev);
 	loff_t addr;
-	struct mtd_oob_ops  ;
+	struct mtd_oob_ops  ops;
 	int retval;
 
 	yaffs_trace(YAFFS_TRACE_MTD,
@@ -155,7 +155,7 @@ static int yaffs_mtd_erase(struct yaffs_dev *dev, int block_no)
 	struct mtd_info *mtd = yaffs_dev_to_mtd(dev);
 
 	loff_t addr;
-	struct erase_info ei;
+	struct erase_info ei;	//4.4
 	int retval = 0;
 	u32 block_size;
 

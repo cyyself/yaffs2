@@ -31,7 +31,7 @@ static int yaffs_oc_write(struct yaffs_dev *dev, int nand_chunk,
                           const u8 *data, int data_len,
                           const u8 *oob, int oob_len)
 {
-
+    //TODO
     return 0;
 }
 
@@ -41,12 +41,13 @@ static int yaffs_oc_read(struct yaffs_dev *dev, int nand_chunk,
                          u8 *oob, int oob_len,
                          enum yaffs_ecc_result *ecc_result)
 {
+    //TODO
     return 0;
 }
 
 static int yaffs_oc_erase(struct yaffs_dev *dev, int block_no)
 {
-    return 0;
+    return YAFFS_OK;
 }
 
 static int yaffs_oc_mark_bad(struct yaffs_dev *dev, int block_no)
@@ -61,6 +62,7 @@ static int yaffs_oc_check_bad(struct yaffs_dev *dev, int block_no)
 
 static int yaffs_oc_initialise(struct yaffs_dev *dev)
 {
+    // dev->param->no_tags_ecc=1; //yaffs2
 	return YAFFS_OK;
 }
 
