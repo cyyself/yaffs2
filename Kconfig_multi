@@ -169,3 +169,11 @@ config YAFFS_XATTR
 	help
 	 If this is set then yaffs2 will provide xattr support.
 	 If unsure, say Y.
+
+config YAFFS_MEMORY_STATISTIC
+	bool "Enable yaffs2 memory statistic"
+	depends on YAFFS_FS
+	default n
+	help
+	 If this is set then yaffs2 will count kernel memory used by yaffs module
+	 If unsure, say n.

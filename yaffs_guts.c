@@ -40,6 +40,13 @@
 
 /* Forward declarations */
 
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+extern size_t yaffs_memory_count;
+//#define kmalloc(x, flags) ({void *ret = kmalloc(x,flags);if (ret) yaffs_memory_count+=x;ret;})
+#define vmalloc(x) ({yaffs_memory_count+=x;vmalloc(x);})
+//#define kfree(x) ({yaffs_memory_count-=ksize(x);kfree(x);})
+#endif
+
 static void yaffs_fix_null_name(struct yaffs_obj *obj, YCHAR *name,
 				int buffer_size);
 
@@ -159,6 +166,9 @@ u8 *yaffs_get_temp_buffer(struct yaffs_dev * dev)
 	 */
 
 	dev->unmanaged_buffer_allocs++;
+#if 0
+	yaffs_memory_count += dev->data_bytes_per_chunk;
+#endif
 	return kmalloc(dev->data_bytes_per_chunk, GFP_NOFS);
 
 }
@@ -2067,17 +2077,27 @@ struct yaffs_obj *yaffs_link_obj(struct yaffs_obj *parent, const YCHAR * name,
 
 static void yaffs_deinit_blocks(struct yaffs_dev *dev)
 {
-	if (dev->block_info_alt && dev->block_info)
+	if (dev->block_info_alt && dev->block_info) {
 		vfree(dev->block_info);
-	else
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+		int n_blocks = dev->internal_end_block - dev->internal_start_block + 1;
+		yaffs_memory_count -= n_blocks * sizeof(struct yaffs_block_info);
+#endif
+	}
+	else 
 		kfree(dev->block_info);
-
+	
 	dev->block_info_alt = 0;
 
 	dev->block_info = NULL;
 
-	if (dev->chunk_bits_alt && dev->chunk_bits)
+	if (dev->chunk_bits_alt && dev->chunk_bits) {
 		vfree(dev->chunk_bits);
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+		int n_blocks = dev->internal_end_block - dev->internal_start_block + 1;
+		yaffs_memory_count -= dev->chunk_bit_stride * n_blocks;
+#endif
+	}
 	else
 		kfree(dev->chunk_bits);
 	dev->chunk_bits_alt = 0;
@@ -2093,30 +2113,16 @@ static int yaffs_init_blocks(struct yaffs_dev *dev)
 	dev->alloc_block = -1;	/* force it to get a new one */
 
 	/* If the first allocation strategy fails, thry the alternate one */
-	dev->block_info =
-		kmalloc(n_blocks * sizeof(struct yaffs_block_info), GFP_NOFS);
-	if (!dev->block_info) {
-		dev->block_info =
-		    vmalloc(n_blocks * sizeof(struct yaffs_block_info));
-		dev->block_info_alt = 1;
-	} else {
-		dev->block_info_alt = 0;
-	}
+	dev->block_info = vmalloc(n_blocks * sizeof(struct yaffs_block_info));
+	dev->block_info_alt = 1;
 
 	if (!dev->block_info)
 		goto alloc_error;
 
 	/* Set up dynamic blockinfo stuff. Round up bytes. */
 	dev->chunk_bit_stride = (dev->param.chunks_per_block + 7) / 8;
-	dev->chunk_bits =
-		kmalloc(dev->chunk_bit_stride * n_blocks, GFP_NOFS);
-	if (!dev->chunk_bits) {
-		dev->chunk_bits =
-		    vmalloc(dev->chunk_bit_stride * n_blocks);
-		dev->chunk_bits_alt = 1;
-	} else {
-		dev->chunk_bits_alt = 0;
-	}
+	dev->chunk_bits = vmalloc(dev->chunk_bit_stride * n_blocks);
+	dev->chunk_bits_alt = 1;
 	if (!dev->chunk_bits)
 		goto alloc_error;
 
@@ -4712,8 +4718,12 @@ int yaffs_guts_initialise(struct yaffs_dev *dev)
 		dev->gc_cleanup_list =
 		    kmalloc(dev->param.chunks_per_block * sizeof(u32),
 					GFP_NOFS);
-		if (!dev->gc_cleanup_list)
+		if (!dev->gc_cleanup_list) {
 			init_failed = 1;
+#if 0
+			yaffs_memory_count -= dev->param.chunks_per_block * sizeof(u32);
+#endif
+		}
 	}
 
 	if (dev->param.is_yaffs2)

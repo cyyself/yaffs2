@@ -29,6 +29,13 @@
  * to slab to provide the extra features we need here.
  */
 
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+extern size_t yaffs_memory_count;
+//#define kmalloc(x, flags) ({void *ret = kmalloc(x,flags);if (ret) yaffs_memory_count+=x;ret;})
+#define vmalloc(x) ({yaffs_memory_count+=x;vmalloc(x);})
+//#define kfree(x) ({yaffs_memory_count-=ksize(x);kfree(x);})
+#endif
+
 struct yaffs_tnode_list {
 	struct yaffs_tnode_list *next;
 	struct yaffs_tnode *tnodes;

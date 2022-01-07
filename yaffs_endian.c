@@ -15,6 +15,12 @@
 #include "yaffs_endian.h"
 #include "yaffs_guts.h"
 
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+extern size_t yaffs_memory_count;
+//#define kmalloc(x, flags) ({void *ret = kmalloc(x,flags);if (ret) yaffs_memory_count+=x;ret;})
+#define vmalloc(x) ({yaffs_memory_count+=x;vmalloc(x);})
+//#define kfree(x) ({yaffs_memory_count-=ksize(x);kfree(x);})
+#endif
 
 void yaffs_do_endian_u32(struct yaffs_dev *dev, u32 *val)
 {
@@ -100,6 +106,6 @@ void yaffs_endian_config(struct yaffs_dev *dev)
 			dev->swap_endian = 1;
 	}
 
-	if (dev->swap_endian)
+	if (dev->swap_endian) 
 		dev->tn_swap_buffer = kmalloc(dev->tnode_size, GFP_NOFS);
 }

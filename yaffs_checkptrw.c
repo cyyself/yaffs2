@@ -14,6 +14,13 @@
 #include "yaffs_getblockinfo.h"
 #include "yaffs_endian.h"
 
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+extern size_t yaffs_memory_count;
+//#define kmalloc(x, flags) ({void *ret = kmalloc(x,flags);if (ret) yaffs_memory_count+=x;ret;})
+#define vmalloc(x) ({yaffs_memory_count+=x;vmalloc(x);})
+//#define kfree(x) ({yaffs_memory_count-=ksize(x);kfree(x);})
+#endif
+
 struct yaffs_checkpt_chunk_hdr {
 	int version;
 	int seq;
@@ -223,7 +230,7 @@ int yaffs2_checkpt_open(struct yaffs_dev *dev, int writing)
 	if (writing && !yaffs2_checkpt_space_ok(dev))
 		return 0;
 
-	if (!dev->checkpt_buffer)
+	if (!dev->checkpt_buffer) 
 		dev->checkpt_buffer =
 		    kmalloc(dev->param.total_bytes_per_chunk, GFP_NOFS);
 	if (!dev->checkpt_buffer)

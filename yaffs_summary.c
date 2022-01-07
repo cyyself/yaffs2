@@ -28,6 +28,13 @@
 #include "yaffs_getblockinfo.h"
 #include "yaffs_bitmap.h"
 
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+extern size_t yaffs_memory_count;
+//#define kmalloc(x, flags) ({void *ret = kmalloc(x,flags);if (ret) yaffs_memory_count+=x;ret;})
+#define vmalloc(x) ({yaffs_memory_count+=x;vmalloc(x);})
+//#define kfree(x) ({yaffs_memory_count-=ksize(x);kfree(x);})
+#endif
+
 /*
  * The summary is built up in an array of summary tags.
  * This gets written to the last one or two (maybe more) chunks in a block.

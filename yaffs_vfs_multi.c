@@ -91,6 +91,33 @@
 
 #if (YAFFS_NEW_FOLLOW_LINK == 1)
 #include <linux/namei.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
+#include <linux/dcache.h>
+#include <linux/security.h>
+#define EMBEDDED_LEVELS 2
+struct nameidata {
+	struct path	path;
+	struct qstr	last;
+	struct path	root;
+	struct inode	*inode; /* path.dentry.d_inode */
+	unsigned int	flags;
+	unsigned	seq, m_seq;
+	int		last_type;
+	unsigned	depth;
+	int		total_link_count;
+	struct saved {
+		struct path link;
+		void *cookie;
+		const char *name;
+		struct inode *inode;
+		unsigned seq;
+	} *stack, internal[EMBEDDED_LEVELS];
+	struct filename	*name;
+	struct nameidata *saved;
+	unsigned	root_seq;
+	int		dfd;
+};
+#endif
 #endif
 
 #ifdef YAFFS_COMPILE_EXPORTFS
@@ -182,6 +209,36 @@ static uint32_t YCALCBLOCKS(uint64_t partition_size, uint32_t block_size)
 #include "yaffs_packedtags2.h"
 #include "yaffs_getblockinfo.h"
 
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+size_t yaffs_memory_count = 0;
+
+static ssize_t yaffs_memory_count_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf) {
+	return sprintf(buf, "%ld B\n", yaffs_memory_count);
+}
+
+static ssize_t yaffs_memory_count_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t cnt) {
+	return 0;
+}
+
+static struct kobj_attribute yaffs_memory_count_attr = __ATTR(yaffs_memory_count, 0444, yaffs_memory_count_show, yaffs_memory_count_store);
+
+static struct attribute *yaffs_memory_statistic_attrs[] = {
+    &yaffs_memory_count_attr.attr,
+    NULL,
+};
+
+static struct attribute_group yaffs_memory_statistic_attr_group = {
+    .attrs = yaffs_memory_statistic_attrs,
+};
+
+struct kobject *yaffs_memory_statistic_kobj;
+
+//#define kmalloc(x, flags) ({void *ret = kmalloc(x,flags);if (ret) yaffs_memory_count+=x;ret;})
+#define vmalloc(x) ({yaffs_memory_count+=x;vmalloc(x);})
+//#define kfree(x) ({yaffs_memory_count-=ksize(x);kfree(x);})
+
+#endif
+
 unsigned int yaffs_trace_mask = YAFFS_TRACE_BAD_BLOCKS | YAFFS_TRACE_ALWAYS | 0;
 unsigned int yaffs_wr_attempts = YAFFS_WR_ATTEMPTS;
 unsigned int yaffs_auto_checkpoint = 1;
@@ -249,13 +306,18 @@ MODULE_PARM(yaffs_gc_control, "i");
 #endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
+#define Y_GET_DENTRY(f) ((f)->f_path.dentry)
+#else
+#define Y_GET_DENTRY(f) ((f)->f_dentry)
+#endif
+
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
 #define PAGE_CACHE_SIZE PAGE_SIZE
 #define PAGE_CACHE_SHIFT PAGE_SHIFT
-#define Y_GET_DENTRY(f) ((f)->f_path.dentry)
 #define YAFFS_NEW_XATTR 1
 #define YAFFS_NEW_GET_LINK 1
 #else
-#define Y_GET_DENTRY(f) ((f)->f_dentry)
 #define YAFFS_NEW_XATTR 0
 #define YAFFS_NEW_GET_LINK 0
 #endif
@@ -1113,7 +1175,7 @@ static void *yaffs_follow_link(struct dentry *dentry, struct nameidata *nd)
 #else
 static int yaffs_follow_link(struct dentry *dentry, struct nameidata *nd)
 {
-	int ret
+	int ret;
 #endif
 	unsigned char *alias;
 	int ret_int = 0;
@@ -1129,7 +1191,11 @@ static int yaffs_follow_link(struct dentry *dentry, struct nameidata *nd)
 		goto out;
 	}
 #if (YAFFS_NEW_FOLLOW_LINK == 1)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
+	nd->stack->cookie = alias;
+#else
 	nd_set_link(nd, alias);
+#endif
 	ret = alias;
 out:
 	if (ret_int)
@@ -3743,12 +3809,26 @@ static int __init init_yaffs_fs(void)
 
 	yaffs_trace(YAFFS_TRACE_ALWAYS,
 		"yaffs Installing.");
-
+	
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+	yaffs_memory_statistic_kobj = kobject_create_and_add("yaffs_memory_statistic", kernel_kobj);
+	if (!(yaffs_memory_statistic_kobj)) error = -ENOMEM;
+	error = sysfs_create_group(yaffs_memory_statistic_kobj, &yaffs_memory_statistic_attr_group);
+	if (error) {
+		kobject_put(yaffs_memory_statistic_kobj);
+		return error;
+	}
+#endif
 	mutex_init(&yaffs_context_lock);
 
 	error = yaffs_procfs_init();
-	if (error)
+	if (error) {
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+		sysfs_remove_group(yaffs_memory_statistic_kobj, &yaffs_memory_statistic_attr_group);
+		kobject_put(yaffs_memory_statistic_kobj);
+#endif
 		return error;
+	}
 
 	/* Now add the file system entries */
 
@@ -3763,6 +3843,10 @@ static int __init init_yaffs_fs(void)
 
 	/* Any errors? uninstall  */
 	if (error) {
+#ifdef CONFIG_YAFFS_MEMORY_STATISTIC
+		sysfs_remove_group(yaffs_memory_statistic_kobj, &yaffs_memory_statistic_attr_group);
+		kobject_put(yaffs_memory_statistic_kobj);
+#endif
 		fsinst = fs_to_install;
 
 		while (fsinst->fst) {
@@ -3784,6 +3868,9 @@ static void __exit exit_yaffs_fs(void)
 
 	yaffs_trace(YAFFS_TRACE_ALWAYS,
 		"yaffs removing.");
+
+	sysfs_remove_group(yaffs_memory_statistic_kobj, &yaffs_memory_statistic_attr_group);
+	kobject_put(yaffs_memory_statistic_kobj);
 
 	remove_proc_entry("yaffs", YPROC_ROOT);
 
