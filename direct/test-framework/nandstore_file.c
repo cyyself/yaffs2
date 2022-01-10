@@ -173,9 +173,13 @@ nandstore_file_init(const char *fname,
 		if (fsize != nbytes) {
 			printf("Initialising backing file.\n");
 			ftruncate(nsfp->handle,0);
-			for(i = 0; i < ns->blocks; i++)
+			printf("\n0/%d",ns->blocks);
+			for(i = 0; i < ns->blocks; i++) {
 				nandstore_file_erase(ns,
 					i * ns->pages_per_block);
+				if (i % 100 == 0 || i == ns->blocks - 1) printf("\r%d/%d",i+1,ns->blocks);
+			}
+			printf("\n");
 		}
 	}
 
