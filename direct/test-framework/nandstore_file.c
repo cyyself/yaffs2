@@ -42,9 +42,9 @@ struct nandstore_file_private {
 	int buff_size;
 };
 
-void reverse_buffer(const unsigned char * buffer, int buff_size) {
+void reverse_buffer(unsigned char * buffer, int buff_size) {
 	while (buff_size) {
-		*buff_size ^= 0xff;
+		*buffer ^= 0xffu;
 		buff_size --;
 	}
 }
