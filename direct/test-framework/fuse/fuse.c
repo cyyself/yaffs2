@@ -99,7 +99,7 @@ int yaffs_fuse_write(const char *path, const char *buf, size_t size, off_t offse
         printf("unable to open fd at %s\n",path);
         return fd;
     }
-    int res = yaffs_pwrite(fd,buf,(unsigned int)size,(unsigned int)offset);
+    int res = yaffs_pwrite(fd,buf,size,offset);
     yaffs_close(fd);
     return res;
 }
