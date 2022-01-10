@@ -32,7 +32,6 @@ ALL_UNSORTED_OBJS += $(DIRECTTESTOBJS)
 include ../FrameworkRules.mk
 
 CFLAGS += `pkg-config fuse --cflags --libs` -lfuse
-CFLAGS += -DYAFFS_MEMORY_STATISTIC
 
 yaffs_fuse: $(FRAMEWORK_SOURCES) $(DIRECTTESTOBJS)
 	gcc -o $@ $(DIRECTTESTOBJS) -lpthread $(CFLAGS)

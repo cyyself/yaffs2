@@ -173,7 +173,7 @@ u32 yaffsfs_CurrentTime(void)
 
 
 static unsigned malloc_high_water;
-static unsigned malloc_currently_allocated;
+unsigned malloc_currently_allocated;
 
 #ifdef CONFIG_YAFFS_MONITOR_MALLOC
 
