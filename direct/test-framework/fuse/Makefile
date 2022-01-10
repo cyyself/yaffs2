@@ -25,12 +25,15 @@ TARGETS = yaffs_fuse
 
 all: $(TARGETS)
 
-DIRECTTESTOBJS = $(COMMONTESTOBJS) dtest.o
+DIRECTTESTOBJS = $(COMMONTESTOBJS) fuse.o
 
 ALL_UNSORTED_OBJS += $(DIRECTTESTOBJS)
 
 include ../FrameworkRules.mk
 
+CFLAGS += `pkg-config fuse --cflags --libs` -lfuse
+CFLAGS += -DYAFFS_MEMORY_STATISTIC
+
 yaffs_fuse: $(FRAMEWORK_SOURCES) $(DIRECTTESTOBJS)
-	gcc -o $@ $(DIRECTTESTOBJS) -lpthread
+	gcc -o $@ $(DIRECTTESTOBJS) -lpthread $(CFLAGS)
 
