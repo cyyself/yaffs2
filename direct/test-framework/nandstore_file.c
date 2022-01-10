@@ -67,7 +67,7 @@ static int nandstore_file_store(struct nand_store *this, int page,
 {
 	struct nandstore_file_private *nsfp =
 		(struct nandstore_file_private *)this->private_data;
-	int pos = nsfp->buff_size * page;
+	off_t pos = (off_t)nsfp->buff_size * page;
 	int i;
 
 	maybe_power_fail(page, __LINE__);
@@ -90,13 +90,13 @@ static int nandstore_file_retrieve(struct nand_store *this, int page,
 	struct nandstore_file_private *nsfp =
 		(struct nandstore_file_private *)this->private_data;
 
-	lseek(nsfp->handle, nsfp->buff_size * page, SEEK_SET);
+	lseek(nsfp->handle, (off_t)nsfp->buff_size * page, SEEK_SET);
 	read(nsfp->handle, buffer, nsfp->buff_size);
 	return 0;
 }
 static int nandstore_file_erase(struct nand_store *this, int page)
 {
-	int block = page / this->pages_per_block;
+	off_t block = page / this->pages_per_block;
 	struct nandstore_file_private *nsfp =
 		(struct nandstore_file_private *)this->private_data;
 	int i;
@@ -168,7 +168,7 @@ nandstore_file_init(const char *fname,
 	nsfp->handle = open(nsfp->backing_file, O_RDWR | O_CREAT, 0666);
 	if(nsfp->handle >=0){
 		fsize = lseek(nsfp->handle,0,SEEK_END);
-		nbytes = ns->blocks * ns->pages_per_block *
+		nbytes = (off_t)ns->blocks * ns->pages_per_block *
 			(ns->data_bytes_per_page + ns->spare_bytes_per_page);
 		/*
 		if (fsize != nbytes) {
