@@ -183,5 +183,6 @@ int main(int argc, char *argv[]) {
     yaffsfs_OSInitialisation();
     dev = yaffs_nandsim_install_drv("", back_file, nr_blocks, 4, 1);
     yaffs_mount("/");
+    printf("Mounted!\n");
     return fuse_main(argc-1,argv+1,&yaffs_fuse_ops,NULL);
 }
