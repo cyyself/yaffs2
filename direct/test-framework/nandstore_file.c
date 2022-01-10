@@ -42,6 +42,13 @@ struct nandstore_file_private {
 	int buff_size;
 };
 
+void reverse_buffer(const unsigned char * buffer, int buff_size) {
+	while (buff_size) {
+		*buff_size ^= 0xff;
+		buff_size --;
+	}
+}
+
 static void maybe_power_fail(unsigned int nand_chunk, int fail_point)
 {
 
@@ -75,7 +82,7 @@ static int nandstore_file_store(struct nand_store *this, int page,
 	lseek(nsfp->handle, pos, SEEK_SET);
 	read(nsfp->handle, nsfp->buffer, nsfp->buff_size);
 	for(i = 0; i < nsfp->buff_size; i++)
-		nsfp->buffer[i] &= buffer[i];
+		nsfp->buffer[i] = ((nsfp->buffer[i] ^ 0xffu) & buffer[i]) ^ 0xffu;
 	lseek(nsfp->handle, pos, SEEK_SET);
 	write(nsfp->handle, nsfp->buffer, nsfp->buff_size);
 
@@ -92,6 +99,7 @@ static int nandstore_file_retrieve(struct nand_store *this, int page,
 
 	lseek(nsfp->handle, (off_t)nsfp->buff_size * page, SEEK_SET);
 	read(nsfp->handle, buffer, nsfp->buff_size);
+	reverse_buffer(buffer, nsfp->buff_size);
 	return 0;
 }
 static int nandstore_file_erase(struct nand_store *this, int page)
@@ -105,7 +113,7 @@ static int nandstore_file_erase(struct nand_store *this, int page)
 
 	lseek(nsfp->handle,
 		block * nsfp->buff_size * this->pages_per_block, SEEK_SET);
-	memset(nsfp->buffer, 0xff, nsfp->buff_size);
+	memset(nsfp->buffer, 0x00, nsfp->buff_size);
 	for(i = 0; i < this->pages_per_block; i++)
 		write(nsfp->handle, nsfp->buffer, nsfp->buff_size);
 	return 0;
