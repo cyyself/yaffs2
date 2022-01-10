@@ -42,7 +42,7 @@ struct yaffs_dev *yaffs_nandsim_install_drv(const char *dev_name,
 	chip = nandsim_file_init(backing_file_name, n_blocks, 64, 2048, 64, 0);
 	if(!chip)
 		goto fail;
-
+	printf("Mounting...\n");
 	param = &dev->param;
 
 	param->name = name_copy;

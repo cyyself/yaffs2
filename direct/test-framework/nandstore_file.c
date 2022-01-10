@@ -170,13 +170,15 @@ nandstore_file_init(const char *fname,
 		fsize = lseek(nsfp->handle,0,SEEK_END);
 		nbytes = ns->blocks * ns->pages_per_block *
 			(ns->data_bytes_per_page + ns->spare_bytes_per_page);
+		/*
 		if (fsize != nbytes) {
 			printf("Initialising backing file.\n");
 			ftruncate(nsfp->handle,0);
-			for(i = 0; i < ns->blocks; i++)
+			for(i = 0; i < ns->blocks; i++) 
 				nandstore_file_erase(ns,
 					i * ns->pages_per_block);
 		}
+		*/
 	}
 
 	power_fail_init();
